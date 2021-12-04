@@ -1,5 +1,6 @@
 package cloudproject;
 
+import java.util.Collection;
 import java.util.Scanner;
 
 import com.amazonaws.AmazonClientException;
@@ -8,9 +9,12 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AvailabilityZone;
 import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
+import com.amazonaws.services.ec2.model.DescribeImagesRequest;
+import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeRegionsResult;
+import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Region;
 import com.amazonaws.services.ec2.model.Reservation;
@@ -107,6 +111,7 @@ public class mycloudproject {
                 break;
 
             case 8:
+            	listImages();
                 break;
 
             case 99:
@@ -290,6 +295,21 @@ public class mycloudproject {
 		ec2.stopInstances(si_request);
 		
 		System.out.printf("Successfully stop instance %s", instance_id);
+	}
+	
+	//8. list images
+	public static void listImages() {
+		System.out.println("Listing images...");
+		
+		DescribeImagesRequest request = new DescribeImagesRequest();
+		request.withOwners("self");
+		DescribeImagesResult response = ec2.describeImages(request);
+
+		for(Image image : response.getImages()) {
+			System.out.printf("[ImageID] %s, " + "[Name] %s, " + "[Owner] %s ", image.getImageId(), image.getName(), image.getOwnerId());
+			System.out.println();
+		}
+		
 	}
 	
 
