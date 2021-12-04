@@ -16,8 +16,13 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceType;
+import com.amazonaws.services.ec2.model.RebootInstancesRequest;
+import com.amazonaws.services.ec2.model.RebootInstancesResult;
 import com.amazonaws.services.ec2.model.Region;
 import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.RunInstancesRequest;
+import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
@@ -105,9 +110,11 @@ public class mycloudproject {
                 break;
 
             case 6:
+            	createInstance();
                 break;
 
             case 7:
+            	rebootInstance();
                 break;
 
             case 8:
@@ -295,6 +302,99 @@ public class mycloudproject {
 		ec2.stopInstances(si_request);
 		
 		System.out.printf("Successfully stop instance %s", instance_id);
+	}
+	
+	//6. create instance
+	public static void createInstance() {
+		System.out.print("Enter ami id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String ami_id = id_scan.nextLine();
+		
+		//해당 이미지id가 있는지 확인
+		DescribeImagesRequest di_request = new DescribeImagesRequest();
+		di_request.withOwners("self");
+		DescribeImagesResult di_response = ec2.describeImages(di_request);
+		boolean exist = false;
+		for(Image image : di_response.getImages()) {
+			if(image.getImageId().contentEquals(ami_id) == true) {
+				exist = true;
+				break;
+			}
+		}
+		
+		//해당 이미지가 없을때
+		if(exist == false) {
+			System.out.println("The ami id does not exist");
+			return;
+		}
+		
+		//해당 이미지가 있을때
+		RunInstancesRequest ri_request = new RunInstancesRequest();
+		ri_request.withImageId(ami_id);
+		ri_request.withInstanceType(InstanceType.T2Micro);
+		ri_request.withMaxCount(1);
+		ri_request.withMinCount(1);
+		
+		RunInstancesResult ri_response = ec2.runInstances(ri_request);
+		System.out.printf("Successfully started EC2 instance %s " + "based on AMI %s", ri_response.getReservation().getInstances().get(0).getInstanceId(), ami_id);
+		System.out.println();
+	}
+	
+	//7. reboot instance
+	public static void rebootInstance() {
+		System.out.print("Enter instance id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String instance_id = id_scan.nextLine();
+		
+		//해당 인스턴스 id가 있는지 확인
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
+			
+			for (Reservation reservation : di_response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			di_request.setNextToken(di_response.getNextToken());
+			if (di_response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		//해당 인스턴스 id가 없을때
+		if(exist == false) {
+			System.out.println("The instance id does not exist");
+			return;
+		}
+		
+		//해당 인스턴스 id가 있을때
+		System.out.printf("Rebooting... %s", instance_id);
+		System.out.println();
+		
+		RebootInstancesRequest ri_request = new RebootInstancesRequest();
+		ri_request.withInstanceIds(instance_id);
+		
+		RebootInstancesResult ri_response = ec2.rebootInstances(ri_request);
+		
+		System.out.printf("Successfully rebooted instance %s", instance_id);
+		System.out.println();
 	}
 	
 	//8. list images
