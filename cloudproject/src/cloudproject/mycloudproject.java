@@ -12,6 +12,8 @@ import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.StartInstancesRequest;
+import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
 public class mycloudproject {
 
@@ -84,12 +86,14 @@ public class mycloudproject {
                 break;
 
             case 3:
+            	startInstance();
                 break;
 
             case 4:
                 break;
 
             case 5:
+            	stopInstance();
                 break;
 
             case 6:
@@ -158,5 +162,111 @@ public class mycloudproject {
 		System.out.printf("You have access to %d Availability Zones.", response.getAvailabilityZones().size());
 		System.out.println();
 	}
+	
+	//3. start instance
+	public static void startInstance() {
+		System.out.print("Enter instance id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String instance_id = id_scan.nextLine();
+		
+		System.out.printf("Starting ... %s", instance_id);
+		System.out.println();
+		
+		//해당 인스턴스 id가 있는지 확인
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
+			
+			for (Reservation reservation : di_response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			di_request.setNextToken(di_response.getNextToken());
+			if (di_response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		//해당 인스턴스 id가 없을때
+		if(exist == false) {
+			System.out.println("The instance id does not exist");
+			return;
+		}
+		
+		//해당 인스턴스 id가 있을때
+		StartInstancesRequest si_request = new StartInstancesRequest();
+		si_request.withInstanceIds(instance_id);
+		ec2.startInstances(si_request);
+		
+		System.out.printf("Successfully started instance %s", instance_id);
+	}
+
+	//5. stop instance
+	public static void stopInstance() {
+		System.out.print("Enter instance id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String instance_id = id_scan.nextLine();
+		
+		//해당 인스턴스 id가 있는지 확인
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
+			
+			for (Reservation reservation : di_response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			di_request.setNextToken(di_response.getNextToken());
+			if (di_response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		//해당 인스턴스 id가 없을때
+		if(exist == false) {
+			System.out.println("The instance id does not exist");
+			return;
+		}
+		
+		//해당 인스턴스 id가 있을때
+		StopInstancesRequest si_request = new StopInstancesRequest();
+		si_request.withInstanceIds(instance_id);
+		ec2.stopInstances(si_request);
+		
+		System.out.printf("Successfully stop instance %s", instance_id);
+	}
+	
 
 }
