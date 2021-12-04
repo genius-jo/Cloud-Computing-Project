@@ -10,7 +10,9 @@ import com.amazonaws.services.ec2.model.AvailabilityZone;
 import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Region;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
@@ -55,6 +57,7 @@ public class mycloudproject {
 		Scanner menu = new Scanner(System.in);
 		Scanner id_string = new Scanner(System.in);
 		int number = 0;
+		boolean finish = false;
 		
 		while (true) {
 			System.out.println(" ");
@@ -90,6 +93,7 @@ public class mycloudproject {
                 break;
 
             case 4:
+            	availableRegions();
                 break;
 
             case 5:
@@ -106,8 +110,14 @@ public class mycloudproject {
                 break;
 
             case 99:
+            	finish = true;
                 break;
 
+			}
+			
+			if(finish == true) {
+				System.out.println("quit");
+				break;
 			}
 		}
 	}
@@ -215,6 +225,20 @@ public class mycloudproject {
 		ec2.startInstances(si_request);
 		
 		System.out.printf("Successfully started instance %s", instance_id);
+	}
+	
+	//4. available regions
+	public static void availableRegions() {
+		
+		System.out.println("Available regions...");
+		
+		DescribeRegionsResult response = ec2.describeRegions();
+		
+		for(Region region : response.getRegions()) {
+			System.out.printf("[region] %s, " + "[endpoint] %s ", region.getRegionName(), region.getEndpoint());
+			System.out.println();
+		}
+		
 	}
 
 	//5. stop instance
