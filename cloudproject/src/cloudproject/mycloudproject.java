@@ -8,15 +8,21 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AvailabilityZone;
+import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
+import com.amazonaws.services.ec2.model.CreateKeyPairResult;
+import com.amazonaws.services.ec2.model.DeleteKeyPairRequest;
+import com.amazonaws.services.ec2.model.DeleteKeyPairResult;
 import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+import com.amazonaws.services.ec2.model.DescribeKeyPairsResult;
 import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceType;
+import com.amazonaws.services.ec2.model.KeyPairInfo;
 import com.amazonaws.services.ec2.model.MonitorInstancesRequest;
 import com.amazonaws.services.ec2.model.MonitorInstancesResult;
 import com.amazonaws.services.ec2.model.RebootInstancesRequest;
@@ -86,6 +92,8 @@ public class mycloudproject {
 			System.out.println(" 5. stop instance     6. create instance ");
 			System.out.println(" 7. reboot instance   8. list images ");
 			System.out.println(" 9. monitor instance  10. unmonitor instance ");
+			System.out.println(" 11. list key pair    12. create key pair ");
+			System.out.println(" 13. delete key pair ");
 			System.out.println("                      99. quit ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -133,7 +141,19 @@ public class mycloudproject {
             case 10:
             	unmonitorInstance();
             	break;
-                
+            
+            case 11:
+            	listKeyPair();
+            	break;
+            
+            case 12:
+            	createKeyPair();
+            	break;
+            	
+            case 13:
+            	deleteKeyPair();
+            	break;
+            	
             case 99:
             	finish = true;
                 break;
@@ -535,6 +555,80 @@ public class mycloudproject {
 		
 		System.out.printf("Successfully disabled monitoring for instance %s", instance_id);
 		System.out.println();
+	}
+	
+	//11.list key pair
+	public static void listKeyPair() {
+		DescribeKeyPairsResult response = ec2.describeKeyPairs();
+		
+		for(KeyPairInfo key : response.getKeyPairs()) {
+			System.out.printf( "[name] %s " + "[fingerprint] %s ", key.getKeyName(), key.getKeyFingerprint());
+			System.out.println();
+		}
+	}
+	
+	//12. create key pair
+	public static void createKeyPair() {
+		System.out.print("Enter Key Name : ");
+		
+		Scanner name_scan = new Scanner(System.in);
+		String key_name = name_scan.nextLine();
+		boolean exist = false;
+		
+		//해당 키의 이름이 존재하는지 확인
+		DescribeKeyPairsResult dp_response = ec2.describeKeyPairs();
+		
+		for(KeyPairInfo key : dp_response.getKeyPairs()) {
+			if(key.getKeyName().contentEquals(key_name) == true) {
+				exist = true;
+				break;
+			}
+		}
+		
+		//해당 키의 이름이 이미 존재할때
+		if(exist == true) {
+			System.out.println( "The name of that key already exists");
+			return;
+		}
+		
+		//해당 키의 이름이 존재하지 않을때
+		CreateKeyPairRequest request = new CreateKeyPairRequest();
+		request.withKeyName(key_name);
+		
+		CreateKeyPairResult response = ec2.createKeyPair(request);
+		System.out.printf( "Successfully created key pair named %s", key_name);
+	}
+	
+	//13. delete key pair
+	public static void deleteKeyPair() {
+		System.out.print("Enter Key Name : ");
+		
+		Scanner name_scan = new Scanner(System.in);
+		String key_name = name_scan.nextLine();
+		boolean exist = false;
+		
+		//해당 키의 이름이 존재하는지 확인
+		DescribeKeyPairsResult dp_response = ec2.describeKeyPairs();
+		
+		for(KeyPairInfo key : dp_response.getKeyPairs()) {
+			if(key.getKeyName().contentEquals(key_name) == true) {
+				exist = true;
+				break;
+			}
+		}
+		
+		//해당 키의 이름이 존재하지 않을때
+		if(exist == false) {
+			System.out.println( "The name of that key does not exist");
+			return;
+		}
+		
+		//해당 키의 이름이 존재할때		
+		DeleteKeyPairRequest request = new DeleteKeyPairRequest();
+		request.withKeyName(key_name);
+		
+		DeleteKeyPairResult response = ec2.deleteKeyPair(request);
+		System.out.printf( "Successfully deleted key pair named %s", key_name);
 	}
 	
 
