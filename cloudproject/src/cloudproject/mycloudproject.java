@@ -32,7 +32,9 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
+import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
+import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.UnmonitorInstancesRequest;
 import com.amazonaws.services.ec2.model.UnmonitorInstancesResult;
 
@@ -93,8 +95,7 @@ public class mycloudproject {
 			System.out.println(" 7. reboot instance   8. list images ");
 			System.out.println(" 9. monitor instance  10. unmonitor instance ");
 			System.out.println(" 11. list key pair    12. create key pair ");
-			System.out.println(" 13. delete key pair ");
-			System.out.println("                      99. quit ");
+			System.out.println(" 13. delete key pair  99. quit  ");
 			System.out.println("------------------------------------------------------------");
 			
 			System.out.print("Enter an integer: ");
@@ -214,49 +215,24 @@ public class mycloudproject {
 			System.out.printf("[id] %s, " + "[region] %s,  " + "[zone] %s ", zone.getZoneId(), zone.getRegionName(), zone.getZoneName());
 			System.out.println();
 		}
+		
 		System.out.printf("You have access to %d Availability Zones.", response.getAvailabilityZones().size());
 		System.out.println();
 	}
 	
 	//3. start instance
 	public static void startInstance() {
+		
 		System.out.print("Enter instance id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String instance_id = id_scan.nextLine();
 		
-		System.out.printf("Starting ... %s", instance_id);
+		System.out.printf("Starting... %s", instance_id);
 		System.out.println();
 		
 		//해당 인스턴스 id가 있는지 확인
-		boolean exist = false;
-		boolean done = false;
-		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
-		while (!done) {
-			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
-			
-			for (Reservation reservation : di_response.getReservations()) {
-				for(Instance instance : reservation.getInstances()) {
-					
-					//시작하려는 인스턴스 id와 id가 같을때
-					if(instance.getInstanceId().contentEquals(instance_id) == true) {
-						exist = true;
-						break;
-					}
-				}
-				
-				if(exist == true)
-					break;
-			}
-			
-			if(exist == true)
-				break;
-			
-			di_request.setNextToken(di_response.getNextToken());
-			if (di_response.getNextToken() == null) {
-				done = true;
-			}
-		}
+		boolean exist = existInstance(instance_id);
 		
 		//해당 인스턴스 id가 없을때
 		if(exist == false) {
@@ -265,9 +241,10 @@ public class mycloudproject {
 		}
 		
 		//해당 인스턴스 id가 있을때
-		StartInstancesRequest si_request = new StartInstancesRequest();
-		si_request.withInstanceIds(instance_id);
-		ec2.startInstances(si_request);
+		StartInstancesRequest request = new StartInstancesRequest();
+		request.withInstanceIds(instance_id);
+		
+		StartInstancesResult response = ec2.startInstances(request);
 		
 		System.out.printf("Successfully started instance %s", instance_id);
 	}
@@ -288,40 +265,14 @@ public class mycloudproject {
 
 	//5. stop instance
 	public static void stopInstance() {
+		
 		System.out.print("Enter instance id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String instance_id = id_scan.nextLine();
 		
 		//해당 인스턴스 id가 있는지 확인
-		boolean exist = false;
-		boolean done = false;
-		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
-		while (!done) {
-			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
-			
-			for (Reservation reservation : di_response.getReservations()) {
-				for(Instance instance : reservation.getInstances()) {
-					
-					//시작하려는 인스턴스 id와 id가 같을때
-					if(instance.getInstanceId().contentEquals(instance_id) == true) {
-						exist = true;
-						break;
-					}
-				}
-				
-				if(exist == true)
-					break;
-			}
-			
-			if(exist == true)
-				break;
-			
-			di_request.setNextToken(di_response.getNextToken());
-			if (di_response.getNextToken() == null) {
-				done = true;
-			}
-		}
+		boolean exist = existInstance(instance_id);
 		
 		//해당 인스턴스 id가 없을때
 		if(exist == false) {
@@ -330,31 +281,24 @@ public class mycloudproject {
 		}
 		
 		//해당 인스턴스 id가 있을때
-		StopInstancesRequest si_request = new StopInstancesRequest();
-		si_request.withInstanceIds(instance_id);
-		ec2.stopInstances(si_request);
+		StopInstancesRequest request = new StopInstancesRequest();
+		request.withInstanceIds(instance_id);
+		
+		StopInstancesResult response = ec2.stopInstances(request);
 		
 		System.out.printf("Successfully stop instance %s", instance_id);
 	}
 	
 	//6. create instance
 	public static void createInstance() {
+		
 		System.out.print("Enter ami id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String ami_id = id_scan.nextLine();
 		
 		//해당 이미지id가 있는지 확인
-		DescribeImagesRequest di_request = new DescribeImagesRequest();
-		di_request.withOwners("self");
-		DescribeImagesResult di_response = ec2.describeImages(di_request);
-		boolean exist = false;
-		for(Image image : di_response.getImages()) {
-			if(image.getImageId().contentEquals(ami_id) == true) {
-				exist = true;
-				break;
-			}
-		}
+		boolean exist = existImage(ami_id);
 		
 		//해당 이미지가 없을때
 		if(exist == false) {
@@ -363,53 +307,28 @@ public class mycloudproject {
 		}
 		
 		//해당 이미지가 있을때
-		RunInstancesRequest ri_request = new RunInstancesRequest();
-		ri_request.withImageId(ami_id);
-		ri_request.withInstanceType(InstanceType.T2Micro);
-		ri_request.withMaxCount(1);
-		ri_request.withMinCount(1);
+		RunInstancesRequest request = new RunInstancesRequest();
+		request.withImageId(ami_id);
+		request.withInstanceType(InstanceType.T2Micro);
+		request.withMaxCount(1);
+		request.withMinCount(1);
 		
-		RunInstancesResult ri_response = ec2.runInstances(ri_request);
-		System.out.printf("Successfully started EC2 instance %s " + "based on AMI %s", ri_response.getReservation().getInstances().get(0).getInstanceId(), ami_id);
+		RunInstancesResult response = ec2.runInstances(request);
+		
+		System.out.printf("Successfully started EC2 instance %s " + "based on AMI %s", response.getReservation().getInstances().get(0).getInstanceId(), ami_id);
 		System.out.println();
 	}
 	
 	//7. reboot instance
 	public static void rebootInstance() {
+		
 		System.out.print("Enter instance id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String instance_id = id_scan.nextLine();
 		
 		//해당 인스턴스 id가 있는지 확인
-		boolean exist = false;
-		boolean done = false;
-		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
-		while (!done) {
-			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
-			
-			for (Reservation reservation : di_response.getReservations()) {
-				for(Instance instance : reservation.getInstances()) {
-					
-					//시작하려는 인스턴스 id와 id가 같을때
-					if(instance.getInstanceId().contentEquals(instance_id) == true) {
-						exist = true;
-						break;
-					}
-				}
-				
-				if(exist == true)
-					break;
-			}
-			
-			if(exist == true)
-				break;
-			
-			di_request.setNextToken(di_response.getNextToken());
-			if (di_response.getNextToken() == null) {
-				done = true;
-			}
-		}
+		boolean exist = existInstance(instance_id);
 		
 		//해당 인스턴스 id가 없을때
 		if(exist == false) {
@@ -421,10 +340,10 @@ public class mycloudproject {
 		System.out.printf("Rebooting... %s", instance_id);
 		System.out.println();
 		
-		RebootInstancesRequest ri_request = new RebootInstancesRequest();
-		ri_request.withInstanceIds(instance_id);
+		RebootInstancesRequest request = new RebootInstancesRequest();
+		request.withInstanceIds(instance_id);
 		
-		RebootInstancesResult ri_response = ec2.rebootInstances(ri_request);
+		RebootInstancesResult response = ec2.rebootInstances(request);
 		
 		System.out.printf("Successfully rebooted instance %s", instance_id);
 		System.out.println();
@@ -432,10 +351,12 @@ public class mycloudproject {
 	
 	//8. list images
 	public static void listImages() {
+		
 		System.out.println("Listing images...");
 		
 		DescribeImagesRequest request = new DescribeImagesRequest();
 		request.withOwners("self");
+		
 		DescribeImagesResult response = ec2.describeImages(request);
 
 		for(Image image : response.getImages()) {
@@ -447,40 +368,14 @@ public class mycloudproject {
 	
 	//9. monitor instance
 	public static void monitorInstance() {
+		
 		System.out.print("Enter instance id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String instance_id = id_scan.nextLine();
 		
 		//해당 인스턴스 id가 있는지 확인
-		boolean exist = false;
-		boolean done = false;
-		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
-		while (!done) {
-			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
-			
-			for (Reservation reservation : di_response.getReservations()) {
-				for(Instance instance : reservation.getInstances()) {
-					
-					//시작하려는 인스턴스 id와 id가 같을때
-					if(instance.getInstanceId().contentEquals(instance_id) == true) {
-						exist = true;
-						break;
-					}
-				}
-				
-				if(exist == true)
-					break;
-			}
-			
-			if(exist == true)
-				break;
-			
-			di_request.setNextToken(di_response.getNextToken());
-			if (di_response.getNextToken() == null) {
-				done = true;
-			}
-		}
+		boolean exist = existInstance(instance_id);
 		
 		//해당 인스턴스 id가 없을때
 		if(exist == false) {
@@ -492,10 +387,10 @@ public class mycloudproject {
 		System.out.printf("Monitoring... %s", instance_id);
 		System.out.println();
 		
-		MonitorInstancesRequest mi_request = new MonitorInstancesRequest();
-		mi_request.withInstanceIds(instance_id);
+		MonitorInstancesRequest request = new MonitorInstancesRequest();
+		request.withInstanceIds(instance_id);
 		
-		MonitorInstancesResult mi_response = ec2.monitorInstances(mi_request);
+		MonitorInstancesResult response = ec2.monitorInstances(request);
 		
 		System.out.printf("Successfully enabled monitoring for instance %s", instance_id);
 		System.out.println();
@@ -503,40 +398,14 @@ public class mycloudproject {
 	
 	//10. unmonitor instance
 	public static void unmonitorInstance() {
+		
 		System.out.print("Enter instance id : ");
 		
 		Scanner id_scan = new Scanner(System.in);
 		String instance_id = id_scan.nextLine();
 		
 		//해당 인스턴스 id가 있는지 확인
-		boolean exist = false;
-		boolean done = false;
-		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
-		while (!done) {
-			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
-			
-			for (Reservation reservation : di_response.getReservations()) {
-				for(Instance instance : reservation.getInstances()) {
-					
-					//시작하려는 인스턴스 id와 id가 같을때
-					if(instance.getInstanceId().contentEquals(instance_id) == true) {
-						exist = true;
-						break;
-					}
-				}
-				
-				if(exist == true)
-					break;
-			}
-			
-			if(exist == true)
-				break;
-			
-			di_request.setNextToken(di_response.getNextToken());
-			if (di_response.getNextToken() == null) {
-				done = true;
-			}
-		}
+		boolean exist = existInstance(instance_id);
 		
 		//해당 인스턴스 id가 없을때
 		if(exist == false) {
@@ -548,10 +417,10 @@ public class mycloudproject {
 		System.out.printf("Unmonitoring... %s", instance_id);
 		System.out.println();
 		
-		UnmonitorInstancesRequest umi_request = new UnmonitorInstancesRequest();
-		umi_request.withInstanceIds(instance_id);
+		UnmonitorInstancesRequest request = new UnmonitorInstancesRequest();
+		request.withInstanceIds(instance_id);
 		
-		UnmonitorInstancesResult umi_response = ec2.unmonitorInstances(umi_request);
+		UnmonitorInstancesResult response = ec2.unmonitorInstances(request);
 		
 		System.out.printf("Successfully disabled monitoring for instance %s", instance_id);
 		System.out.println();
@@ -559,6 +428,7 @@ public class mycloudproject {
 	
 	//11.list key pair
 	public static void listKeyPair() {
+		
 		DescribeKeyPairsResult response = ec2.describeKeyPairs();
 		
 		for(KeyPairInfo key : response.getKeyPairs()) {
@@ -573,17 +443,7 @@ public class mycloudproject {
 		
 		Scanner name_scan = new Scanner(System.in);
 		String key_name = name_scan.nextLine();
-		boolean exist = false;
-		
-		//해당 키의 이름이 존재하는지 확인
-		DescribeKeyPairsResult dp_response = ec2.describeKeyPairs();
-		
-		for(KeyPairInfo key : dp_response.getKeyPairs()) {
-			if(key.getKeyName().contentEquals(key_name) == true) {
-				exist = true;
-				break;
-			}
-		}
+		boolean exist = existKey(key_name);
 		
 		//해당 키의 이름이 이미 존재할때
 		if(exist == true) {
@@ -605,17 +465,7 @@ public class mycloudproject {
 		
 		Scanner name_scan = new Scanner(System.in);
 		String key_name = name_scan.nextLine();
-		boolean exist = false;
-		
-		//해당 키의 이름이 존재하는지 확인
-		DescribeKeyPairsResult dp_response = ec2.describeKeyPairs();
-		
-		for(KeyPairInfo key : dp_response.getKeyPairs()) {
-			if(key.getKeyName().contentEquals(key_name) == true) {
-				exist = true;
-				break;
-			}
-		}
+		boolean exist = existKey(key_name);
 		
 		//해당 키의 이름이 존재하지 않을때
 		if(exist == false) {
@@ -631,5 +481,76 @@ public class mycloudproject {
 		System.out.printf( "Successfully deleted key pair named %s", key_name);
 	}
 	
+	//해당 인스턴스 ID가 존재하는지 확인
+	public static boolean existInstance(String instance_id) {
+		
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult response = ec2.describeInstances(request);
+			
+			for (Reservation reservation : response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			request.setNextToken(response.getNextToken());
+			if (response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		return exist;
+	}
+	
+	//해당 이미지 ID가 존재하는지 확인
+	public static boolean existImage(String ami_id) {
+		//해당 이미지id가 있는지 확인
+		DescribeImagesRequest request = new DescribeImagesRequest();
+		request.withOwners("self");
+		
+		DescribeImagesResult response = ec2.describeImages(request);
+		
+		boolean exist = false;
+		for(Image image : response.getImages()) {
+			if(image.getImageId().contentEquals(ami_id) == true) {
+				exist = true;
+				break;
+			}
+		}
+		
+		return exist;
+	}
+	
+	//해당 key의 이름이 존재하는지 확인
+	public static boolean existKey(String key_name) {
+
+		boolean exist = false;
+		
+		//해당 키의 이름이 존재하는지 확인
+		DescribeKeyPairsResult response = ec2.describeKeyPairs();
+		
+		for(KeyPairInfo key : response.getKeyPairs()) {
+			if(key.getKeyName().contentEquals(key_name) == true) {
+				exist = true;
+				break;
+			}
+		}
+		
+		return exist;
+	}
 
 }
