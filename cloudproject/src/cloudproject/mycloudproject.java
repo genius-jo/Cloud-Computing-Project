@@ -17,6 +17,8 @@ import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceType;
+import com.amazonaws.services.ec2.model.MonitorInstancesRequest;
+import com.amazonaws.services.ec2.model.MonitorInstancesResult;
 import com.amazonaws.services.ec2.model.RebootInstancesRequest;
 import com.amazonaws.services.ec2.model.RebootInstancesResult;
 import com.amazonaws.services.ec2.model.Region;
@@ -25,6 +27,8 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
+import com.amazonaws.services.ec2.model.UnmonitorInstancesRequest;
+import com.amazonaws.services.ec2.model.UnmonitorInstancesResult;
 
 public class mycloudproject {
 
@@ -81,6 +85,7 @@ public class mycloudproject {
 			System.out.println(" 3. start instance    4. available regions ");
 			System.out.println(" 5. stop instance     6. create instance ");
 			System.out.println(" 7. reboot instance   8. list images ");
+			System.out.println(" 9. monitor instance  10. unmonitor instance ");
 			System.out.println("                      99. quit ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -120,7 +125,15 @@ public class mycloudproject {
             case 8:
             	listImages();
                 break;
-
+            
+            case 9:
+            	monitorInstance();
+            	break;
+            
+            case 10:
+            	unmonitorInstance();
+            	break;
+                
             case 99:
             	finish = true;
                 break;
@@ -410,6 +423,118 @@ public class mycloudproject {
 			System.out.println();
 		}
 		
+	}
+	
+	//9. monitor instance
+	public static void monitorInstance() {
+		System.out.print("Enter instance id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String instance_id = id_scan.nextLine();
+		
+		//해당 인스턴스 id가 있는지 확인
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
+			
+			for (Reservation reservation : di_response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			di_request.setNextToken(di_response.getNextToken());
+			if (di_response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		//해당 인스턴스 id가 없을때
+		if(exist == false) {
+			System.out.println("The instance id does not exist");
+			return;
+		}
+		
+		//해당 인스턴스 id가 있을때
+		System.out.printf("Monitoring... %s", instance_id);
+		System.out.println();
+		
+		MonitorInstancesRequest mi_request = new MonitorInstancesRequest();
+		mi_request.withInstanceIds(instance_id);
+		
+		MonitorInstancesResult mi_response = ec2.monitorInstances(mi_request);
+		
+		System.out.printf("Successfully enabled monitoring for instance %s", instance_id);
+		System.out.println();
+	}
+	
+	//10. unmonitor instance
+	public static void unmonitorInstance() {
+		System.out.print("Enter instance id : ");
+		
+		Scanner id_scan = new Scanner(System.in);
+		String instance_id = id_scan.nextLine();
+		
+		//해당 인스턴스 id가 있는지 확인
+		boolean exist = false;
+		boolean done = false;
+		DescribeInstancesRequest di_request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult di_response = ec2.describeInstances(di_request);
+			
+			for (Reservation reservation : di_response.getReservations()) {
+				for(Instance instance : reservation.getInstances()) {
+					
+					//시작하려는 인스턴스 id와 id가 같을때
+					if(instance.getInstanceId().contentEquals(instance_id) == true) {
+						exist = true;
+						break;
+					}
+				}
+				
+				if(exist == true)
+					break;
+			}
+			
+			if(exist == true)
+				break;
+			
+			di_request.setNextToken(di_response.getNextToken());
+			if (di_response.getNextToken() == null) {
+				done = true;
+			}
+		}
+		
+		//해당 인스턴스 id가 없을때
+		if(exist == false) {
+			System.out.println("The instance id does not exist");
+			return;
+		}
+		
+		//해당 인스턴스 id가 있을때
+		System.out.printf("Unmonitoring... %s", instance_id);
+		System.out.println();
+		
+		UnmonitorInstancesRequest umi_request = new UnmonitorInstancesRequest();
+		umi_request.withInstanceIds(instance_id);
+		
+		UnmonitorInstancesResult umi_response = ec2.unmonitorInstances(umi_request);
+		
+		System.out.printf("Successfully disabled monitoring for instance %s", instance_id);
+		System.out.println();
 	}
 	
 
